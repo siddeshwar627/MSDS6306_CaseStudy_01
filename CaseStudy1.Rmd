@@ -1,0 +1,224 @@
+---
+title: "DDS Case Study"
+author: "Sid Swarupananda"
+date: "October 8, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Libraries used
+
+```{r}
+library(plyr)
+library(dplyr)
+library(magrittr)
+library(rlang)
+library(ggplot2)
+library(ggthemes)
+library(knitr)
+library(kableExtra)
+library(class)
+library(caret)
+library(e1071)
+library(ggthemes)
+```
+
+# 1.	How many breweries are present in each state?
+
+```{r}
+# Read in beer and breweries data set using read.csv
+Beers <- read.csv("https://raw.githubusercontent.com/BivinSadler/MDS-6306-Doing-Data-Science-Fall-2019/master/Unit%208%20and%209%20Case%20Study%201/Beers.csv", header = TRUE, sep = ",")
+Breweries <- read.csv("https://raw.githubusercontent.com/BivinSadler/MDS-6306-Doing-Data-Science-Fall-2019/master/Unit%208%20and%209%20Case%20Study%201/Breweries.csv", header = TRUE, sep = ",")
+
+detach(package:plyr)    
+library(dplyr)
+
+Breweries %>% group_by(State) %>% summarize(count = n()) %>% ggplot(aes(x=reorder(State, count), y = count)) +
+geom_bar(stat="identity", width=.5, fill="tomato3") +
+labs(title="Ordered Bar Chart",
+     x = "State",
+     y = "Brewereis Count",
+     subtitle="Breweries Per State Count",
+     caption="source: Breweries.csv") +
+     theme(axis.text.x = element_text(angle=65, vjust=0.6))
+
+```
+
+# 2.   Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file.  (RMD only, this does not need to be included in the presentation or the deck.)
+```{r}
+# Renamed Brewery_id to Brew_ID to satisfy merging requirement
+Beers <- rename(Beers, Brew_ID = Brewery_id)
+BrewPub <- merge(Beers, Breweries, by="Brew_ID")
+
+# Rename Name.x as Beer_Name and Name.y as Brewery_Name
+BrewPub <- rename(BrewPub, Beer_Name = Name.x)
+BrewPub <- rename(BrewPub, Brewery_Name = Name.y)
+
+# First 6 observations of the merged file
+head(BrewPub, 6)
+
+# Last 6 observations of the merged file
+tail(BrewPub,6)
+```
+
+# 3.   Address the missing values in each column.
+```{r}
+summary(BrewPub)
+MissingValues <- sapply(BrewPub, function(x)sum(is.na(x)))
+MissingValues 
+```
+
+# ABV and IBU are the only columns with missing values. However, since we have a high number of observations, we should be able to omit the missing values and still be able to determine any significant insights.  
+
+# 4.   Compute the median alcohol content and international bitterness unit for each state. Plot a bar chart to compare.
+```{r}
+# Compute the median alcohol content unit for each state.
+Alcohol <- BrewPub %>% na.omit() %>% group_by(State) %>% summarize(Median = median(ABV)) %>% arrange(Median)
+
+# Compute the median international bitterness unit for each state.
+Bitter <- BrewPub %>% na.omit() %>% group_by(State) %>% summarize(Median = median(IBU)) %>% arrange(Median)
+
+# Plot a bar chart to compare ABV by state
+ggplot(data=Alcohol, aes(x=State, y=Median)) +
+  geom_bar(stat="identity", fill="blue")+
+  ggtitle("Median ABV by State") +
+  labs(x="State",y="ABV")
+
+# Plot a bar chart to compare IBU by state
+ggplot(data=Bitter, aes(x=State, y=Median)) +
+  geom_bar(stat="identity", fill="blue")+
+  ggtitle("Median IBU by State") +
+  labs(x="State",y="IBU")
+```
+
+# 5.   Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
+```{r}
+BrewPub[which.max(BrewPub$ABV),]
+BrewPub[which.max(BrewPub$IBU),]
+```
+
+# 6.   Comment on the summary statistics and distribution of the ABV variable.
+```{r}
+BeerSummary <- (summary(BrewPub$ABV))
+print(BeerSummary)
+ggplot(BrewPub, aes(x=ABV)) + geom_histogram(color = "blue", fill = "white") + xlab("Alcohol by Volume")
+```
+
+# Looking at a histogram of the data, it seems to be a bit right-skewed.  This makes sense because beer is not meant to be a very high ABV drink-the high ABV beers would be more rare.
+
+# 7.   Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Draw a scatter plot.  Make your best judgment of a relationship and EXPLAIN your answer.
+```{r}
+# Draw a scatter plot to compare relationship between beer bitterness and alcohol content
+ggplot(BrewPub, aes(x=IBU, y= ABV)) +
+  geom_point(shape=1) +
+   geom_smooth(method=lm) + # add linear regression line
+ggtitle("Correlation between IBU and ABV") +
+  labs(x="IBU - Bitterness of the beer",y="ABV - Alcoholic content of the beer")
+# Pearson's product-moment correlation
+cor.test(BrewPub$ABV,BrewPub$IBU)
+```
+
+# In this analysis, we examined data from two datasets regarding beers and breweries throughout the US. We examined the structure of this data, cleaned them, and combined them. We then performed various analyses, such as calculating median values for IBU and ABV by state, and determining which states had the beers with the highest ABV and IBU values. We finished by looking for a potential relationship between IBU and ABV, and found that there is evidence to suggest that a positive correlation exists between the two.
+
+# The Pearson correlation coefficient, r, can take a range of values from +1 to -1. A value of 0 indicates that there is no association between the two variables. A value greater than 0 indicates a positive association; that is, as the value of one variable increases, so does the value of the other variable. Here we got the cor as 0.67 between ABV and IBU which suggests there  is a positive correlation.
+
+## Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with "Ale" in its name other than IPA).
+
+# Inida Pale Ale v. Other Type Ale
+```{r}
+BrewPub$BeerType <- ifelse(grepl("Ale$", BrewPub$Style, ignore.case = T), "Other Type Ale",
+ifelse(grepl("IPA$", BrewPub$Style, ignore.case = T ), "India Pale Ale", "Other Type"))
+
+BrewPub$BeerType = as.factor(BrewPub$BeerType)
+
+BrewPub %>% ggplot(mapping=aes(x=Ounces, y=ABV, fill=BeerType)) + geom_boxplot() + 
+  ggtitle("ABV by Ounces") + theme_economist()
+
+# When looking at the beers by ounces, it appears that IPAs have higher median ABV values than other Ales. 
+BrewPubIPAOther = BrewPub %>% filter(!is.na(BeerType) & !is.na(IBU) &!is.na(ABV)) %>%  
+  filter(BeerType == "India Pale Ale" | BeerType == "Other Type Ale")
+summary(BrewPubIPAOther)
+BrewPubIPAOther = droplevels(BrewPubIPAOther, exclude = "Other Type")
+summary(BrewPubIPAOther)
+
+BrewPubIPAOther %>% ggplot(aes(x=IBU, ABV, color = BeerType)) + geom_point()
+
+set.seed(6)
+splitPerc = .75
+trainIndices = sample(1:dim(BrewPubIPAOther)[1],round(splitPerc * dim(BrewPubIPAOther)[1]))
+train = BrewPubIPAOther[trainIndices,]
+test = BrewPubIPAOther[-trainIndices,]
+
+BrewPubIPAOther %>% ggplot(aes(x = IBU, ABV, color = BeerType)) + geom_point() + geom_smooth() +
+  ggtitle("ABV vs IBU") + theme_economist()
+```
+
+# Knn method to investigate the difference with respect to IBU and ABV between IPAs and Other Type of Ale
+
+```{r}
+# k = 3
+classifications = knn(train[,c(3,4)],test[,c(3,4)],train$BeerType, prob = TRUE, k = 3)
+table(classifications,test$BeerType)
+confusionMatrix(table(classifications,test$BeerType))
+
+# k = 5
+classifications = knn(train[,c(3,4)],test[,c(3,4)],train$BeerType, prob = TRUE, k = 5)
+table(test$BeerType,classifications)
+confusionMatrix(table(test$BeerType,classifications))
+
+# k = 10
+classifications = knn(train[,c(3,4)],test[,c(3,4)],train$BeerType, prob = TRUE, k = 10)
+table(test$BeerType,classifications)
+confusionMatrix(table(test$BeerType,classifications))
+
+
+# k = 20
+classifications = knn(train[,c(3,4)],test[,c(3,4)],train$BeerType, prob = TRUE, k = 20)
+table(test$BeerType,classifications)
+CM = confusionMatrix(table(test$BeerType,classifications))
+CM$overall[1]
+
+## Loop for many k and one training / test partition
+accs = data.frame(accuracy = numeric(30), k = numeric(30))
+
+for(i in 1:30)
+{
+  classifications = knn(train[,c(3,4)],test[,c(3,4)],train$BeerType, prob = TRUE, k = i)
+  table(test$BeerType,classifications)
+  CM = confusionMatrix(table(test$BeerType,classifications))
+  accs$accuracy[i] = CM$overall[1]
+  accs$k[i] = i
+}
+
+plot(accs$k,accs$accuracy, type = "l", xlab = "k")
+```
+
+# Naive Bayes method to investigate the difference with respect to IBU and ABV between IPAs and Other Type of Ale
+
+```{r}
+model = naiveBayes(BrewPubIPAOther[,c(3,4)],BrewPubIPAOther$BeerType)
+table(predict(model,BrewPubIPAOther[,c(3,4)]),BrewPubIPAOther$BeerType)
+CM = confusionMatrix(table(predict(model,BrewPubIPAOther[,c(3,4)]),BrewPubIPAOther$BeerType))
+CM
+
+iterations = 100
+masterAcc = matrix(nrow = iterations)
+splitPerc = .7 #Training / Test split Percentage
+for(j in 1:iterations)
+{
+  trainIndices = sample(1:dim(BrewPubIPAOther)[1],round(splitPerc * dim(BrewPubIPAOther)[1]))
+  train = BrewPubIPAOther[trainIndices,]
+  test = BrewPubIPAOther[-trainIndices,]
+  
+  model = naiveBayes(train[,c(3,4)],as.factor(train$BeerType))
+  table(predict(model,test[,c(3,4)]),as.factor(test$BeerType))
+  CM = confusionMatrix(table(predict(model,test[,c(3,4)]),as.factor(test$BeerType)))
+  masterAcc[j] = CM$overall[1]
+}
+MeanAcc = colMeans(masterAcc)
+MeanAcc
+```
+
