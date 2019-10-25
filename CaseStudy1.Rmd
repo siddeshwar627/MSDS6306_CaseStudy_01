@@ -1,7 +1,7 @@
 ---
 title: "DDS Case Study"
-author: "Sid Swarupananda"
-date: "October 8, 2019"
+author: "Sid Swarupananda and Sean McWhirter"
+date: "October 25, 2019"
 output: html_document
 ---
 
@@ -24,6 +24,13 @@ library(class)
 library(caret)
 library(e1071)
 library(ggthemes)
+library(tidyverse)
+library(GGally)
+library(doBy)
+library(ggmap)
+library(maps)
+library(openintro)
+library(stringr)
 ```
 
 # 1.	How many breweries are present in each state?
@@ -36,6 +43,9 @@ Breweries <- read.csv("https://raw.githubusercontent.com/BivinSadler/MDS-6306-Do
 detach(package:plyr)    
 library(dplyr)
 
+BrewPerState <-table(Breweries$State)
+BrewPerState
+
 Breweries %>% group_by(State) %>% summarize(count = n()) %>% ggplot(aes(x=reorder(State, count), y = count)) +
 geom_bar(stat="identity", width=.5, fill="tomato3") +
 labs(title="Ordered Bar Chart",
@@ -44,8 +54,19 @@ labs(title="Ordered Bar Chart",
      subtitle="Breweries Per State Count",
      caption="source: Breweries.csv") +
      theme(axis.text.x = element_text(angle=65, vjust=0.6))
-
 ```
+
+# In the United States, range of breweries per state go from 1 brewery to 47 breweries. The average number of craft breweries per state is 10.9.
+
+# Top States with the most breweries include:
+# Colorado (47), California (39), Michigan (32), Oregon (29), Texas (28)
+# Pennsylvania (25), Massachusetts (23), Washington (23), Indiana (22), and Wisconsin (20) are the next five in order
+# Note: The top five states account for 31% of all breweries within the United States
+
+# Bottom States
+# North Dakota, South Dakota, West Virginia and District of Columbia are at the bottom with one brewery each.
+
+# On another note, North Dakota, South Dakota and District of Columbia have a small population. But West Virginia is 38 in total population list in United States. If you are looking for an opportunity to expand into Beer market, West Virginia may be a good place to look at.
 
 # 2.   Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file.  (RMD only, this does not need to be included in the presentation or the deck.)
 ```{r}
@@ -58,17 +79,18 @@ BrewPub <- rename(BrewPub, Beer_Name = Name.x)
 BrewPub <- rename(BrewPub, Brewery_Name = Name.y)
 
 # First 6 observations of the merged file
-head(BrewPub, 6)
+kable(head(BrewPub, 6))
 
 # Last 6 observations of the merged file
-tail(BrewPub,6)
+kable(tail(BrewPub,6))
 ```
 
 # 3.   Address the missing values in each column.
 ```{r}
 summary(BrewPub)
 MissingValues <- sapply(BrewPub, function(x)sum(is.na(x)))
-MissingValues 
+# Used kable library to make document more presentable
+MissingValues %>% kable("html") %>% kable_styling()
 ```
 
 # ABV and IBU are the only columns with missing values. However, since we have a high number of observations, we should be able to omit the missing values and still be able to determine any significant insights.  
@@ -94,11 +116,18 @@ ggplot(data=Bitter, aes(x=State, y=Median)) +
   labs(x="State",y="IBU")
 ```
 
+
+# Here we have 2 charts, which shows Medial alcohol content per state and Median international bitterness per state
+# As you can see in both the charts the medial alcohol content per state is fairly consistent around 6% and median international bitterness per state is very much varied.
+
 # 5.   Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
 ```{r}
-BrewPub[which.max(BrewPub$ABV),]
-BrewPub[which.max(BrewPub$IBU),]
+kable(BrewPub[which.max(BrewPub$ABV),])
+kable(BrewPub[which.max(BrewPub$IBU),])
 ```
+
+# We used which.max on our BrewPub dataset to get the maximum values in ABV and IBU columns 
+# We identified Colorado as having the beer with the highest ABV, at 12.8% and we identified Oregon has having the beer with the highest IBU, at 138.
 
 # 6.   Comment on the summary statistics and distribution of the ABV variable.
 ```{r}
@@ -106,6 +135,8 @@ BeerSummary <- (summary(BrewPub$ABV))
 print(BeerSummary)
 ggplot(BrewPub, aes(x=ABV)) + geom_histogram(color = "blue", fill = "white") + xlab("Alcohol by Volume")
 ```
+
+# When we look at summary statistics of Alcohol by volume, we see that we have some beers don't even measure 1%. Median was 5.6%, Mean or average was 5.9% and the maximum ABV was around 13%. Also, note that we are missing 62 values in the dataset that we were provided
 
 # Looking at a histogram of the data, it seems to be a bit right-skewed.  This makes sense because beer is not meant to be a very high ABV drink-the high ABV beers would be more rare.
 
@@ -125,7 +156,7 @@ cor.test(BrewPub$ABV,BrewPub$IBU)
 
 # The Pearson correlation coefficient, r, can take a range of values from +1 to -1. A value of 0 indicates that there is no association between the two variables. A value greater than 0 indicates a positive association; that is, as the value of one variable increases, so does the value of the other variable. Here we got the cor as 0.67 between ABV and IBU which suggests there  is a positive correlation.
 
-## Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with "Ale" in its name other than IPA).
+# Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with "Ale" in its name other than IPA).
 
 # Inida Pale Ale v. Other Type Ale
 ```{r}
@@ -220,5 +251,101 @@ for(j in 1:iterations)
 }
 MeanAcc = colMeans(masterAcc)
 MeanAcc
+```
+
+
+#Other Insights
+```{r}
+library(usmap)
+library(ggplot2)
+library(mapproj)
+
+BrewPubIPAOther$Ounces<-as.factor(BrewPubIPAOther$Ounces)
+
+BrewPubIPAOther %>% ggplot(mapping=aes(x=Ounces, y=ABV, fill=BeerType)) + geom_boxplot() + 
+  ggtitle("ABV by Ounces") + theme_economist()
+```
+
+```{r}
+#Get Map Data
+states <- map_data("state")
+
+#Test plot of US
+states %>% ggplot(mapping=aes(x=long, y=lat, group=group, fill=region)) + 
+  geom_polygon(fill="white", color="black")
+
+beerbybrew1 = BrewPub %>% filter(!is.na(ABV))
+
+###Median of ABV by state###
+abvmed = summaryBy(ABV~State, data=beerbybrew1, FUN=median)
+
+#Get State names instead of abbreviations
+abvmed1=abvmed
+abvmed1$State<-as.character(abvmed1$State)
+
+#Get rid of white space on left of abbreviation
+abvmed1=abvmed1%>%mutate(State=str_trim(State))
+
+#Do mutation on ABV percentage and getting state full name
+abvmed2=abvmed1%>%mutate(State=abbr2state(State), ABV.median=ABV.median*100)
+head(abvmed2)
+#changing state to lowercase
+abvmed3=abvmed2%>%mutate(State=tolower(State))
+head(abvmed3)
+
+#left_join to get long and lat for each stae
+beerloc=left_join(states,abvmed3, by=c("region"="State"))
+
+#Change ABV.Median to factor
+beerloc$ABV.median<-as.numeric(beerloc$ABV.median)
+
+#Plot ABV median by state
+beerloc %>% ggplot(mapping=aes(x=long, y=lat, group=group, fill=ABV.median)) + 
+  geom_polygon(color="black") + 
+  coord_map(projection="albers", lat0=39, lat1=45) + 
+  labs(title="Median ABV by State") + 
+  theme_map() +
+  labs(fill="Median ABV %")
+
+```
+
+
+#Heat Map of Breweries by State
+```{r}
+#Heat map for breweries by state
+#Count the number of breweries per state
+library(plyr)
+brewst=count(Breweries$State)
+
+#Get State names instead of abbreviations
+brewst$x<-as.character(brewst$x)
+
+#Get rid of white space on left of abbreviation
+brewst1=brewst%>%mutate(x=str_trim(x))
+
+#Do mutation on ABV percentage and getting state full name
+brewst1=brewst1%>%mutate(state1=abbr2state(x))
+head(brewst1)
+
+#changing state to lowercase
+brewst1=brewst1%>%mutate(state2=tolower(state1))
+head(brewst1)
+brewst2=brewst1%>%select(state2, freq)
+head(brewst2)
+
+#left_join to get long and lat for each stae
+brewstate=left_join(states,brewst2, by=c("region"="state2"))
+head(brewstate)
+
+#Change ABV.Median to factor
+brewstate$freq<-as.numeric(brewstate$freq)
+
+#Plot ABV median by state
+brewstate %>% ggplot(mapping=aes(x=long, y=lat, group=group,  fill=freq)) +
+    geom_polygon(color="black") + 
+    coord_map(projection="albers", lat0=39, lat1=45) + 
+      labs(title="Number of Breweries by State") + 
+      theme_map() + 
+      labs(fill="# of Breweries")
 ```
 
