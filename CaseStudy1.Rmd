@@ -39,8 +39,8 @@ library(stringr)
 
 ```{r}
 # Read in beer and breweries data set using read.csv
-Beers <- read.csv("https://raw.githubusercontent.com/BivinSadler/MDS-6306-Doing-Data-Science-Fall-2019/master/Unit%208%20and%209%20Case%20Study%201/Beers.csv", header = TRUE, sep = ",")
-Breweries <- read.csv("https://raw.githubusercontent.com/BivinSadler/MDS-6306-Doing-Data-Science-Fall-2019/master/Unit%208%20and%209%20Case%20Study%201/Breweries.csv", header = TRUE, sep = ",")
+Beers <- read.csv("https://raw.githubusercontent.com/siddeshwar627/MSDS6306_CaseStudy_01/master/Beers.csv", header = TRUE, sep = ",")
+Breweries <- read.csv("https://raw.githubusercontent.com/siddeshwar627/MSDS6306_CaseStudy_01/master/Breweries.csv", header = TRUE, sep = ",")
 
 detach(package:plyr)    
 library(dplyr)
