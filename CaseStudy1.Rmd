@@ -9,6 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Hello and thank you for joining Sid and me to review some insights tha twe were able to gain with the data that this committee has given us. We will be covering all of the initial questions that you all posed in the beginning of this process, as well as some other potentially valuable information that could be of use to you all here at Budweiser.
+
 # Libraries used
 
 ```{r}
@@ -33,7 +35,7 @@ library(openintro)
 library(stringr)
 ```
 
-# 1.	How many breweries are present in each state?
+# Question 1.	How many breweries are present in each state?
 
 ```{r}
 # Read in beer and breweries data set using read.csv
@@ -68,7 +70,7 @@ labs(title="Ordered Bar Chart",
 
 # On another note, North Dakota, South Dakota and District of Columbia have a small population. But West Virginia is 38 in total population list in United States. If you are looking for an opportunity to expand into Beer market, West Virginia may be a good place to look at.
 
-# 2.   Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file.  (RMD only, this does not need to be included in the presentation or the deck.)
+# Question 2.   Merge beer data with the breweries data. Print the first 6 observations and the last six observations to check the merged file.  
 ```{r}
 # Renamed Brewery_id to Brew_ID to satisfy merging requirement
 Beers <- rename(Beers, Brew_ID = Brewery_id)
@@ -85,7 +87,7 @@ kable(head(BrewPub, 6))
 kable(tail(BrewPub,6))
 ```
 
-# 3.   Address the missing values in each column.
+# Question 3.   Address the missing values in each column.
 ```{r}
 summary(BrewPub)
 MissingValues <- sapply(BrewPub, function(x)sum(is.na(x)))
@@ -93,7 +95,7 @@ MissingValues <- sapply(BrewPub, function(x)sum(is.na(x)))
 MissingValues %>% kable("html") %>% kable_styling()
 ```
 
-# ABV and IBU are the only columns with missing values. However, since we have a high number of observations, we should be able to omit the missing values and still be able to determine any significant insights.  
+# ABV and IBU are the only columns with missing values. ABV is missing 62 values, and IBU is mising 1005 values.  Even if we need to filter out all 1005 misisng IBU observations, we would still have 1,405.  If the ABV missing values do not overlap, we would still have 1,343, which is a significant sample size.
 
 # 4.   Compute the median alcohol content and international bitterness unit for each state. Plot a bar chart to compare.
 ```{r}
@@ -120,16 +122,17 @@ ggplot(data=Bitter, aes(x=State, y=Median)) +
 # Here we have 2 charts, which shows Medial alcohol content per state and Median international bitterness per state
 # As you can see in both the charts the medial alcohol content per state is fairly consistent around 6% and median international bitterness per state is very much varied.
 
-# 5.   Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
+# Question 5.   Which state has the maximum alcoholic (ABV) beer? Which state has the most bitter (IBU) beer?
 ```{r}
+#Which state has the maximum ABV beer?  Wich state has the highest IBU beer?
 kable(BrewPub[which.max(BrewPub$ABV),])
+
 kable(BrewPub[which.max(BrewPub$IBU),])
 ```
 
-# We used which.max on our BrewPub dataset to get the maximum values in ABV and IBU columns 
-# We identified Colorado as having the beer with the highest ABV, at 12.8% and we identified Oregon has having the beer with the highest IBU, at 138.
+# We used which.max on our BrewPub dataset to get the maximum values in ABV and IBU columns. We identified Colorado as having the beer with the highest ABV, at 12.8% and we identified Oregon has having the beer with the highest IBU, at 138.
 
-# 6.   Comment on the summary statistics and distribution of the ABV variable.
+# Question 6.   Comment on the summary statistics and distribution of the ABV variable.
 ```{r}
 BeerSummary <- (summary(BrewPub$ABV))
 print(BeerSummary)
@@ -140,7 +143,7 @@ ggplot(BrewPub, aes(x=ABV)) + geom_histogram(color = "blue", fill = "white") + x
 
 # Looking at a histogram of the data, it seems to be a bit right-skewed.  This makes sense because beer is not meant to be a very high ABV drink-the high ABV beers would be more rare.
 
-# 7.   Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Draw a scatter plot.  Make your best judgment of a relationship and EXPLAIN your answer.
+# Question 7.   Is there an apparent relationship between the bitterness of the beer and its alcoholic content? Draw a scatter plot.  Make your best judgment of a relationship and EXPLAIN your answer.
 ```{r}
 # Draw a scatter plot to compare relationship between beer bitterness and alcohol content
 ggplot(BrewPub, aes(x=IBU, y= ABV)) +
@@ -156,19 +159,20 @@ cor.test(BrewPub$ABV,BrewPub$IBU)
 
 # The Pearson correlation coefficient, r, can take a range of values from +1 to -1. A value of 0 indicates that there is no association between the two variables. A value greater than 0 indicates a positive association; that is, as the value of one variable increases, so does the value of the other variable. Here we got the cor as 0.67 between ABV and IBU which suggests there  is a positive correlation.
 
-# Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with "Ale" in its name other than IPA).
+#Question 8: Budweiser would also like to investigate the difference with respect to IBU and ABV between IPAs (India Pale Ales) and other types of Ale (any beer with "Ale" in its name other than IPA). You decide to use KNN clustering to investigate this relationship. Provide statistical evidence one way or the other. You can of course assume your audience is comfortable with percentages . KNN is very easy to understand.
 
-# Inida Pale Ale v. Other Type Ale
 ```{r}
+#The following code groups the beers by "India Pale Ale," "Other Ale," and "Other Type."
 BrewPub$BeerType <- ifelse(grepl("Ale$", BrewPub$Style, ignore.case = T), "Other Type Ale",
 ifelse(grepl("IPA$", BrewPub$Style, ignore.case = T ), "India Pale Ale", "Other Type"))
 
+#Change BeerType to a factor and IBU/ABV to numeric
 BrewPub$BeerType = as.factor(BrewPub$BeerType)
-
-BrewPub %>% ggplot(mapping=aes(x=Ounces, y=ABV, fill=BeerType)) + geom_boxplot() + 
-  ggtitle("ABV by Ounces") + theme_economist()
+BrewPub$ABV<-as.numeric(as.character(BrewPub$ABV))
+BrewPub$IBU<-as.numeric(as.character(BrewPub$IBU))
 
 # When looking at the beers by ounces, it appears that IPAs have higher median ABV values than other Ales. 
+#Selecting for only IPAs and Other Ales.
 BrewPubIPAOther = BrewPub %>% filter(!is.na(BeerType) & !is.na(IBU) &!is.na(ABV)) %>%  
   filter(BeerType == "India Pale Ale" | BeerType == "Other Type Ale")
 summary(BrewPubIPAOther)
@@ -225,17 +229,37 @@ for(i in 1:30)
 }
 
 plot(accs$k,accs$accuracy, type = "l", xlab = "k")
+
+## Loop for many k and one training / test partition--determining the optimal number of k.
+iterations=200
+accs = data.frame(accuracy = numeric(iterations), k = numeric(iterations))
+for(i in 1:iterations)
+{
+  classifications = knn(train[,c(4,5)],test[,c(4,5)],train$BeerType, prob = TRUE, k = i)
+  table(test$BeerType,classifications)
+  CM = confusionMatrix(table(test$BeerType,classifications))
+  accs$accuracy[i] = CM$overall[1]
+  accs$k[i] = i
+}
+plot(accs$k,accs$accuracy, type = "l", xlab = "k", ylab="Accuracy")
+#k=105 since the accuracy graph seems to level off at a high point around there.
+classifications = knn(train[,c(4,5)],test[,c(4,5)],train$BeerType, prob = TRUE, k = 75)
+table(test$BeerType,classifications)
+CM = confusionMatrix(table(test$BeerType,classifications))
+CM
 ```
+#In the graph on the right, we can see how the accuracy of the model changes with the given number of data points, or "neighbors," taken into account.  As you can see, it plateaus shortly after 100 before dropping off.  Because this range holds a relatively stable accuracy (and at the highest point), we ran a model with k=105.  In the data output here you can see that the accuracy is almost 89%.
 
+#Question 9 - Other Insights - Niaeve Bayes
 # Naive Bayes method to investigate the difference with respect to IBU and ABV between IPAs and Other Type of Ale
-
 ```{r}
+#We also tested wither a different model, the Naieve Bayes, would be a more accurate predictor.  This model is different in that it uses given data to predict an uknown factor using probabilities that are calculated from the known data.
 model = naiveBayes(BrewPubIPAOther[,c(3,4)],BrewPubIPAOther$BeerType)
 table(predict(model,BrewPubIPAOther[,c(3,4)]),BrewPubIPAOther$BeerType)
 CM = confusionMatrix(table(predict(model,BrewPubIPAOther[,c(3,4)]),BrewPubIPAOther$BeerType))
 CM
 
-iterations = 100
+iterations = 200
 masterAcc = matrix(nrow = iterations)
 splitPerc = .7 #Training / Test split Percentage
 for(j in 1:iterations)
@@ -251,10 +275,16 @@ for(j in 1:iterations)
 }
 MeanAcc = colMeans(masterAcc)
 MeanAcc
+plot(accs$k,accs$accuracy, type = "l", xlab = "k", ylab="Accuracy")
+#k=105 since the accuracy graph seems to level off at a high point around there.
+classifications = knn(train[,c(4,5)],test[,c(4,5)],train$BeerType, prob = TRUE, k = 75)
+table(test$BeerType,classifications)
+CM = confusionMatrix(table(test$BeerType,classifications))
+CM
+#We can see that this model achieved a mean accuracy of approximately 86.3%--not quite as high as the accuracy we achieved from using the k-NN model. 
 ```
 
-
-#Other Insights
+#Question 9 - Other Insights - ABV by Ounces
 ```{r}
 library(usmap)
 library(ggplot2)
@@ -265,8 +295,12 @@ BrewPubIPAOther$Ounces<-as.factor(BrewPubIPAOther$Ounces)
 BrewPubIPAOther %>% ggplot(mapping=aes(x=Ounces, y=ABV, fill=BeerType)) + geom_boxplot() + 
   ggtitle("ABV by Ounces") + theme_economist()
 ```
+#We can see that it the median ABV value appears to increase as ounces increase, with the execption of 24 and 32 ounces. However, more in-depth statistical testing would need to be done in order to determine if there was a significant relationship. 
 
+#Question 9 - Other Insights - Median ABV by State (continued)
 ```{r}
+#In order to more clearly visualize the median ABV value for each state, we believed a heat map of the United States would be more efficient. 
+
 #Get Map Data
 states <- map_data("state")
 
@@ -308,11 +342,16 @@ beerloc %>% ggplot(mapping=aes(x=long, y=lat, group=group, fill=ABV.median)) +
   labs(fill="Median ABV %")
 
 ```
+#The map clearly shows thte states with higher ABV values.  ONe state that sticks out is Utah--it is significantly darker than the rest of the states. 
 
+#Question 9 - Other Insights - Heat Map of Breweries by State
 
 #Heat Map of Breweries by State
 ```{r}
 #Heat map for breweries by state
+
+#One thing we thought might be beneficial to the committee is to see the population density of the breweries based on the date you had supplied us with.  It was stated in Anheuser-Busch's 2018 Annual Report that organic growth remainsthe number one goal.  However, prudnet acquisitions were in the top three strategies.  
+
 #Count the number of breweries per state
 library(plyr)
 brewst=count(Breweries$State)
@@ -348,4 +387,11 @@ brewstate %>% ggplot(mapping=aes(x=long, y=lat, group=group,  fill=freq)) +
       theme_map() + 
       labs(fill="# of Breweries")
 ```
+#Looking at the heat map below, we believe it may be benneficial to this commitee given acquisition being a main corporate strategy.  One example is Colorado.  It has clearly the highest number of craft breweries, and is also a state where Budweiser is lacking market share compared to Coors. A potential acquisition strategy could be to invest in both early-stage and established craft breweries that show potential in expanding the product line in not only Colorado, but the whole mountan region in general.  Give the purchasing power of Budweiser, and the small size of most craft breweries, it would be relatively easy for Budweiser to invest in multiple breweries without the affecting revenue reinvestment towards Budweiser's number one goal of organic growth.  
 
+
+#Conclusion
+
+#Again, thank you all very much for your time today. We know that you are very busy individuals and we hope that this was beneficial. To recap what we've concluded from this study: #1. we've looked at the numbe of breweries in each state. The states with the largest number of breweries include: Colorado, California, and Michigan. #2. We've looked at the states with the highest ABV and IBu values: Colorado with the highest ABV at 12.8 and Oregon with the highest IBU value of 138. #3. We've looked at the summary statistics of the ABV value, noting that there is a mean of 5.99% and that a majorit of the craft beers have an ABV of 7% or less. #4. We've determined that there seems to be a positive linear relationship between IBU and ABV values, #5. We've utilized a model that will allow us to identify whether a beer is an IPA or Other Ale with approximatley 89% accuracy. #6. We've compared the k-NN model with an alternative model to see which would be better-suited. #7. We've Compared the ABV of the beers versus the ounzes they are served. #8. Finally, we have provided the committee with a map of the brewery concentrations in each state in order to facilite one of Budweiser's main strategic initiatives of acquisition.
+
+#Thank you all again and we hope you have a great weekend.
